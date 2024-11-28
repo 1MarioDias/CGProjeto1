@@ -60,19 +60,19 @@
             const alturaMaxima = Math.floor(canvas.height / tamanhoBloco / 2);
 
             for (let i = 0; i < numEdificios; i++) {
-                const altura = Math.floor(Math.random() * alturaMaxima) + 10;
+                const altura = Math.floor(Math.random() * alturaMaxima) + 10; // ter a certeza de que cada edifício tem pelo menos 10 blocos
                 const edificio = [];
 
                 for (let y = 0; y < altura; y++) {
                     const linha = [];
                     for (let x = 0; x < larguraEdificio / tamanhoBloco; x++) {
-                        linha.push(1);
-                        blocosTotais++;
+                        linha.push(1); // o valor 1 assigned a cada bloco indica que este está presente
+                        blocosTotais++; // contador para depois fazer a % de destruição
                     }
-                    edificio.push(linha);
+                    edificio.push(linha); // adiciona as linhas de blocos ao edificio
                 }
 
-                edificios.push(edificio);
+                edificios.push(edificio); // adiciona cada edifício ao array de edifícios
                 dadosPixels.push({
                     x: i * larguraEdificio,
                     y: canvas.height - altura * tamanhoBloco,
@@ -93,7 +93,7 @@
                                 y + indiceLinha * tamanhoBloco,
                                 tamanhoBloco,
                                 tamanhoBloco
-                            );
+                            ); // pinta de preto cada bloco do universo de edifícios que esteja assigned o valor 1
                         }
                     });
                 });
@@ -107,7 +107,9 @@
                         if (dados[linha][coluna] === 1 && linha + 1 < dados.length && dados[linha + 1][coluna] === 0) {
                             dados[linha][coluna] = 0;
                             dados[linha + 1][coluna] = 1;
-                        }
+                        } 
+                        // checka se, em cada linha, há blocos que podem cair (se a linha inferior a eles estiver vazia)
+                        // e remove o tal bloco da posição atual, colocando-o nessa linha de baixo
                     }
                 }
             });
@@ -119,12 +121,13 @@
                 bola.y += bola.velocidade;
 
                 dadosPixels.forEach(({ x, y, dados }) => {
-                    const colInicio = Math.floor((bola.x - bola.raio - x) / tamanhoBloco);
-                    const colFim = Math.floor((bola.x + bola.raio - x) / tamanhoBloco);
+                    const colInicio = Math.floor((bola.x - bola.raio - x) / tamanhoBloco); // considera o lado esquerdo da bola
+                    const colFim = Math.floor((bola.x + bola.raio - x) / tamanhoBloco); // considera o lado direito da bola
 
                     for (let linha = 0; linha < dados.length; linha++) {
                         for (let coluna = Math.max(colInicio, 0); coluna <= Math.min(colFim, dados[linha].length - 1); coluna++) {
                             if (dados[linha][coluna] === 1 && bola.y + bola.raio >= y + linha * tamanhoBloco) {
+                                // checka em cada posição da bola se ela colidiu com um bloco de valor 1
                                 dados[linha][coluna] = 0;
                                 blocosDestruidos++;
                                 atualizarContador();
@@ -139,6 +142,7 @@
                                         cor: 'orange',
                                         life: 50,
                                     });
+                                    // cria as partículas
                                 }
                             }
                         }
@@ -148,7 +152,7 @@
                 if (bola.y > canvas.height) {
                     bola.aCair = false;
                     bola.velocidade = 0;
-                }
+                } // para a bola no fundo do canvas
             }
         }
 
@@ -156,8 +160,8 @@
         function atualizarParticulas() {
             for (let i = arrayParticulas.length - 1; i >= 0; i--) {
                 const p = arrayParticulas[i];
-                p.x += p.velocidadeX;
-                p.y += p.velocidadeY;
+                p.x += p.velocidadeX; // move a posição de cada partícula horizontalmente
+                p.y += p.velocidadeY; // move a posição de cada partícula para cima
                 p.velocidadeY += gravidade * 0.1;
                 p.life--;
                 if (p.life <= 0) {
