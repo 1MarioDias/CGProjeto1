@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bola Demolidora</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bruno+Ace+SC&display=swap');
+
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #contador {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-family: 'Bruno Ace SC', sans-serif;
+            font-size: 24px;
+            color: white;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="contador">Destruição: 0%</div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const contadorElement = document.getElementById('contador');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const imagemFundo = new Image();
+        imagemFundo.src = '/bg.jpg';
+        imagemFundo.onload = () => {
+            ctx.drawImage(imagemFundo, 0, 0, canvas.width, canvas.height);
+        };
+
+        const gravidade = 0.8;
+        let bola = { x: canvas.width / 2, y: 50, raio: 30, cor: 'red', aCair: false, velocidade: 0 };
+        const tamanhoBloco = 5;
+        const larguraEdificio = 100;
+        const edificios = [];
+        const dadosPixels = [];
+        let blocosTotais = 0;
+        let blocosDestruidos = 0;
+
+        function gerarEdificios() {
+            const numEdificios = Math.floor(canvas.width / larguraEdificio);
+            const alturaMaxima = Math.floor(canvas.height / tamanhoBloco / 2);
+
+            for (let i = 0; i < numEdificios; i++) {
+                const altura = Math.floor(Math.random() * alturaMaxima) + 10;
+                const edificio = [];
+
+                for (let y = 0; y < altura; y++) {
+                    const linha = [];
+                    for (let x = 0; x < larguraEdificio / tamanhoBloco; x++) {
+                        linha.push(1);
+                        blocosTotais++;
+                    }
+                    edificio.push(linha);
+                }
+
+                edificios.push(edificio);
+                dadosPixels.push({
+                    x: i * larguraEdificio,
+                    y: canvas.height - altura * tamanhoBloco,
+                    dados: edificio
+                });
+            }
+        }
+        gerarEdificios();
+
+        function desenharEdificios() {
+            dadosPixels.forEach(({ x, y, dados }) => {
+                dados.forEach((linha, indiceLinha) => {
+                    linha.forEach((bloco, indiceColuna) => {
+                        if (bloco === 1) {
+                            ctx.fillStyle = 'black';
+                            ctx.fillRect(
+                                x + indiceColuna * tamanhoBloco,
+                                y + indiceLinha * tamanhoBloco,
+                                tamanhoBloco,
+                                tamanhoBloco
+                            );
+                        }
+                    });
+                });
+            });
+        }
+
+        function atualizarBlocos() {
+            dadosPixels.forEach(({ x, y, dados }) => {
+                for (let linha = dados.length - 1; linha >= 0; linha--) {
+                    for (let coluna = 0; coluna < dados[linha].length; coluna++) {
+                        if (dados[linha][coluna] === 1 && linha + 1 < dados.length && dados[linha + 1][coluna] === 0) {
+                            dados[linha][coluna] = 0;
+                            dados[linha + 1][coluna] = 1;
+                        }
+                    }
+                }
+            });
+        }
+
+        function atualizarBola() {
+            if (bola.aCair) {
+                bola.velocidade += gravidade;
+                bola.y += bola.velocidade;
+
+                dadosPixels.forEach(({ x, y, dados }) => {
+                    const colInicio = Math.floor((bola.x - bola.raio - x) / tamanhoBloco);
+                    const colFim = Math.floor((bola.x + bola.raio - x) / tamanhoBloco);
+
+                    for (let linha = 0; linha < dados.length; linha++) {
+                        for (let coluna = Math.max(colInicio, 0); coluna <= Math.min(colFim, dados[linha].length - 1); coluna++) {
+                            if (dados[linha][coluna] === 1 && bola.y + bola.raio >= y + linha * tamanhoBloco) {
+                                dados[linha][coluna] = 0;
+                                blocosDestruidos++;
+                                atualizarContador();
+
+                                for (let i = 0; i < 10; i++) {
+                                    arrayParticulas.push({
+                                        x: x + coluna * tamanhoBloco + Math.random() * tamanhoBloco,
+                                        y: y + linha * tamanhoBloco + Math.random() * tamanhoBloco,
+                                        velocidadeX: Math.random() * 4 - 2,
+                                        velocidadeY: Math.random() * -2 - 2,
+                                        raio: Math.random() * 2 + 1,
+                                        cor: 'orange',
+                                        life: 50,
+                                    });
+                                }
+                            }
+                        }
+                    }
+                });
+
+                if (bola.y > canvas.height) {
+                    bola.aCair = false;
+                    bola.velocidade = 0;
+                }
+            }
+        }
+
+        const arrayParticulas = [];
+        function atualizarParticulas() {
+            for (let i = arrayParticulas.length - 1; i >= 0; i--) {
+                const p = arrayParticulas[i];
+                p.x += p.velocidadeX;
+                p.y += p.velocidadeY;
+                p.velocidadeY += gravidade * 0.1;
+                p.life--;
+                if (p.life <= 0) {
+                    arrayParticulas.splice(i, 1);
+                }
+            }
+        }
+
+        function desenharParticulas() {
+            arrayParticulas.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.raio, 0, Math.PI * 2);
+                ctx.fillStyle = p.cor;
+                ctx.fill();
+                ctx.closePath();
+            });
+        }
+
+        function atualizarContador() {
+            const percentagemDestruicao = ((blocosDestruidos / blocosTotais) * 100).toFixed(2);
+            contadorElement.textContent = `Destruição: ${percentagemDestruicao}%`;
+        }
+
+        canvas.addEventListener('mousedown', () => {
+            if (!bola.aCair) {
+                bola.aCair = true;
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!bola.aCair) {
+                bola.x = e.clientX;
+            }
+        });
+
+        canvas.addEventListener('wheel', (e) => {
+            if (e.deltaY < 0) {
+                bola.raio = Math.min(bola.raio + 5, 100);
+            } else {
+                bola.raio = Math.max(bola.raio - 5, 10);
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                bola.y = 50;
+                bola.velocidade = 0;
+                bola.aCair = false;
+            }
+        });
+
+        function atualizar() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(imagemFundo, 0, 0, canvas.width, canvas.height);
+
+            desenharEdificios();
+            atualizarBlocos();
+            atualizarParticulas();
+            atualizarBola();
+            desenharParticulas();
+
+            ctx.beginPath();
+            ctx.arc(bola.x, bola.y, bola.raio, 0, Math.PI * 2);
+            ctx.fillStyle = bola.cor;
+            ctx.fill();
+            ctx.closePath();
+
+            requestAnimationFrame(atualizar);
+        }
+
+        atualizar();
+    </script>
+</body>
+</html>
